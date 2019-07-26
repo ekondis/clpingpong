@@ -27,7 +27,6 @@ inline string trim(string str) {
 pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(const vector<int> &preferences){
 	VECTOR_CLASS<cl::Platform> platforms;
 	VECTOR_CLASS<cl::Device> devices;
-for(auto k:preferences){cout<<k <<',';}
 	cout << "Platform/Device selection" << endl;
 	cl::Platform::get(&platforms);
 	cout << "Total platforms: " << platforms.size() << endl;
