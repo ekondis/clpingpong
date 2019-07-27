@@ -9,6 +9,10 @@
 
 class clPingPongApp {
 private:
+	using device_vector = std::vector<cl::Device>;
+	std::vector<cl::Platform> hostPlatforms;
+	std::vector<device_vector> hostDevices;
+	std::pair<int, int> preference;
 	cl::Platform pl;
 	cl::Device dev;
 	std::string buildLog;
@@ -16,11 +20,12 @@ private:
 	std::unique_ptr<cl::CommandQueue> queue;
 	std::unique_ptr<cl::Buffer> bufferDevAlloc, bufferHostAlloc;
 	std::unique_ptr<cl::Kernel> kPingPong;
-	void initialize_device(const int, const int);
+	void enumerate_devices(void);
+	void choose_device(void);
 	void create_resources(void);
 	void verifyResult(cl_uint);
 protected:
-	std::pair<cl::Platform, cl::Device> selectPlatformDevice(const std::vector<int>&);
+	std::pair<cl::Platform, cl::Device> selectPlatformDevice(void);
 	void print_build_log(void);
 	void resetBufferElements(void);
 	cl_uint readBufferElement(const cl::Buffer&);
@@ -29,6 +34,6 @@ protected:
 	template<class hostF>
 	double runExperiment(const int, const cl::Buffer&, hostF&);
 public:
-	clPingPongApp(const int, const int);
+	clPingPongApp(const int=-1, const int=-1);
 	void run(void);
 };

@@ -21,46 +21,49 @@ inline string trim(string str) {
 	return str; // use substring...
 }
 
-// in_Range template func
+template<typename T>
+bool in_range(const T &v, const T &low, const T &high){
+	if( v<low )
+		return false;
+	else if( v>high )
+		return false;
+	return true;
+}
 
 // Platform and device selection with a preference as hint
-pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(const vector<int> &preferences){
-	VECTOR_CLASS<cl::Platform> platforms;
-	VECTOR_CLASS<cl::Device> devices;
+pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void){
 	cout << "Platform/Device selection" << endl;
-	cl::Platform::get(&platforms);
-	cout << "Total platforms: " << platforms.size() << endl;
+	cout << "Total platforms: " << hostPlatforms.size() << endl;
 	string tmp;
 	long int iP = 1, iD;
-	for(VECTOR_CLASS<cl::Platform>::iterator pl = platforms.begin(); pl != platforms.end(); ++pl) {
-		if( platforms.size() > 1 )
+	for(const auto &pl:hostPlatforms) {
+		if( hostPlatforms.size() > 1 )
 			cout << iP++ << ". ";
-		cout << pl->getInfo<CL_PLATFORM_NAME>() << endl;
-		pl->getDevices(CL_DEVICE_TYPE_ALL, &devices);
+		cout << pl.getInfo<CL_PLATFORM_NAME>() << endl;
 		iD = 1;
-		for(VECTOR_CLASS<cl::Device>::iterator dev = devices.begin(); dev != devices.end(); ++dev)
-			cout << '\t' << iD++ << ". " << trim(dev->getInfo<CL_DEVICE_NAME>()) << '/' << dev->getInfo<CL_DEVICE_VENDOR>() << endl;
+		for(const auto &dev:hostDevices[iP-1])
+			cout << '\t' << iD++ << ". " << trim(dev.getInfo<CL_DEVICE_NAME>()) << '/' << dev.getInfo<CL_DEVICE_VENDOR>() << endl;
 	}
 	// Platform selection
-	if( platforms.size()>1 ){
-		if( preferences.size()>0 && preferences[0]<=static_cast<int>(platforms.size()) ){
-			iP = preferences[0];
+	if( hostPlatforms.size()>1 ){
+		if( in_range<int>(preference.first, 1, static_cast<int>(hostPlatforms.size())) ){
+			iP = preference.first;
 		} else {
 			cout << "Select platform index: ";
 			cin >> iP;
-			while( iP < 0 || iP > (int)platforms.size() ){
+			while( iP < 0 || iP > (int)hostPlatforms.size() ){
 				cout << "Invalid platform index. Select again:";
 				cin >> iP;
 			}
 		}
 	} else
 		iP = 1;
-	cl::Platform platform = platforms[iP-1];
-	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+	cl::Platform platform = hostPlatforms[iP-1];
+	auto &devices = hostDevices[iP-1];
 	// Device selection
 	if( devices.size()>1 ){
-		if( preferences.size()>1 && preferences[1]<=static_cast<int>(devices.size()) ){
-			iD = preferences[1];
+		if( in_range<int>(preference.second, 1, static_cast<int>(devices.size())) ){
+			iD = preference.second;
 		} else {
 			cout << "Select device index: ";
 			cin >> iD;
@@ -125,16 +128,17 @@ void clPingPongApp::print_build_log(void){
         << " ******************** " << endl;
 }
 
-void clPingPongApp::initialize_device(const int preferred_plat_no, const int preferred_dev_no){
-	//selectPlatformDevice(pl, dev);
-	vector<int> preferences{};
-	if( preferred_plat_no>=0 ){
-		preferences.push_back(preferred_plat_no);
-		if( preferred_dev_no>=0 ){
-			preferences.push_back(preferred_dev_no);
-		}
+void clPingPongApp::enumerate_devices(void){
+	cl::Platform::get(&hostPlatforms);
+	for(const auto &p:hostPlatforms) {
+		VECTOR_CLASS<cl::Device> devices;
+		p.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+		hostDevices.push_back( devices );
 	}
-	tie(pl, dev) = selectPlatformDevice(preferences);
+}
+
+void clPingPongApp::choose_device(void){
+	tie(pl, dev) = selectPlatformDevice();
 
 	cl_device_type devType;
 	dev.getInfo(CL_DEVICE_TYPE, &devType);
@@ -152,11 +156,11 @@ void clPingPongApp::create_resources(void){
 	const string str_cl_parameters{"-Werror -cl-std=CL1.2"};
 
 	// Create context, queue
-	cl::Context context = cl::Context(VECTOR_CLASS<cl::Device>(1, dev));
+	cl::Context context{VECTOR_CLASS<cl::Device>(1, dev)};
 	queue = unique_ptr<cl::CommandQueue>(new cl::CommandQueue(context, dev, 0/*CL_QUEUE_PROFILING_ENABLE*/));
 
 	// Load and build kernel
-	cl::Program::Sources src(1, make_pair(kernel_src, sizeof(kernel_src)-1/*remove NULL character*/));
+	cl::Program::Sources src{1, make_pair(kernel_src, sizeof(kernel_src)-1/*remove NULL character*/)};
 	program = unique_ptr<cl::Program>(new cl::Program(context, src));
 
 	try {
@@ -168,13 +172,10 @@ void clPingPongApp::create_resources(void){
 	}
 
 	// Print built log if not empty
-	//string buildLog; 
 	program->getBuildInfo(dev, CL_PROGRAM_BUILD_LOG, &buildLog);
 	buildLog = trim(buildLog);
-	//cout << endl << "%%%%%%%%%" << buildLog.length() << ' ' << buildLog.empty()<< endl;
 	if( !buildLog.empty() )
         print_build_log();
-	//cout << endl << "%%%%%%%%%" << endl;
 
 	// Create buffer
 	bufferDevAlloc = unique_ptr<cl::Buffer>(new cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(cl_int)));
@@ -198,13 +199,14 @@ double clPingPongApp::runExperiment(const int loops, const cl::Buffer& buffer, h
 	return static_cast<double>( chrono::duration_cast<chrono::nanoseconds>(clk_end-clk_begin).count() )/1000000.0;
 }
 
-clPingPongApp::clPingPongApp(const int preferred_plat_no, const int preferred_dev_no){
-	initialize_device(preferred_plat_no, preferred_dev_no);
+clPingPongApp::clPingPongApp(const int preferred_plat_no, const int preferred_dev_no):preference{preferred_plat_no, preferred_dev_no}{
+	enumerate_devices();
 }
 
 void clPingPongApp::run(void){
 	cout << "clpingpong - OpenCL host to device overhead evaluation" << endl << endl;
 
+	choose_device();
 	create_resources();
 
 	resetBufferElements();
@@ -243,8 +245,6 @@ void clPingPongApp::run(void){
 	auto host_decr_mapped = [this]{ decrBufferElementMapped(*bufferDevAlloc); };
 	elapsedTime = runExperiment(LOOPS, *bufferDevAlloc, host_decr_mapped);
 	const auto loopTimeDevAllocMapping = elapsedTime/LOOPS*1000.;
-
-	// Verify result
 	verifyResult( readBufferElement(*bufferDevAlloc) );
 
 	// Device allocated with explicit transfer experiment
@@ -252,8 +252,6 @@ void clPingPongApp::run(void){
 	auto host_decr_transf = [this]{ decrBufferElement(*bufferDevAlloc); };
 	elapsedTime = runExperiment(LOOPS, *bufferDevAlloc, host_decr_transf);
 	const auto loopTimeDevAllocTransf = elapsedTime/LOOPS*1000.;
-
-	// Verify result
 	verifyResult( readBufferElement(*bufferDevAlloc) );
 
 	// Host allocated with memory mapping experiment
@@ -261,8 +259,6 @@ void clPingPongApp::run(void){
 	auto host_decr_mapped_halloc = [this]{ decrBufferElementMapped(*bufferHostAlloc); };
 	elapsedTime = runExperiment(LOOPS, *bufferHostAlloc, host_decr_mapped_halloc);
 	const auto loopTimeHostAllocMapping = elapsedTime/LOOPS*1000.;
-
-	// Verify result
 	verifyResult( readBufferElement(*bufferHostAlloc) );
 
 	// Host allocated with explicit transfer experiment
@@ -270,8 +266,6 @@ void clPingPongApp::run(void){
 	auto host_decr_transf_halloc = [this]{ decrBufferElement(*bufferHostAlloc); };
 	elapsedTime = runExperiment(LOOPS, *bufferHostAlloc, host_decr_transf_halloc);
 	const auto loopTimeHostAllocTransf = elapsedTime/LOOPS*1000.;
-
-	// Verify result
 	verifyResult( readBufferElement(*bufferHostAlloc) );
 
 	cout << endl;
