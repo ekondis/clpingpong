@@ -204,41 +204,44 @@ clPingPongApp::clPingPongApp(const int preferred_plat_no, const int preferred_de
 }
 
 void clPingPongApp::run(void){
-	cout << "clpingpong - OpenCL host to device overhead evaluation" << endl << endl;
+	cout << "clPingPong - OpenCL host to device overhead evaluation" << endl << endl;
 
 	choose_device();
 	create_resources();
 
 	resetBufferElements();
 
-	cout << "Experiment execution:" << endl;
-
 	// Warm up
 	cout << endl << "Warming up... " << flush;
 	auto host_nop = []{};
 	runExperiment(10000, *bufferDevAlloc, host_nop);
 	queue->finish();
-	cout << "OK" << endl;
+	cout << "OK" << endl << endl;
 
 	constexpr int LOOPS = 20000;
 
 	// Device to device only experiments
-	cout << endl << "Device <-> Device (w.sync)... " << std::flush;
+	cout << "Device <-> Device reference experiments" << endl;
+
+	cout << "Device allocated memory w.sync: " << std::flush;
 	auto host_just_sync = [this]{ queue->finish(); };
 	auto elapsedTime = runExperiment(LOOPS, *bufferDevAlloc, host_just_sync);
 	queue->finish();
 	const auto loopTimeDev2DevD = elapsedTime/LOOPS*1000.;
 
-	cout << "OK - Time: " << elapsedTime << " msecs";
+	cout << elapsedTime << " msecs";
 	cout << " (" << loopTimeDev2DevD <<  " usecs/invocation)" << endl;
 
-	cout << "Device <-> Device (w.sync)... " << std::flush;
+	cout << "Host allocated memory w.sync:   " << std::flush;
 	elapsedTime = runExperiment(LOOPS, *bufferHostAlloc, host_just_sync);
 	queue->finish();
 	const auto loopTimeDev2DevH = elapsedTime/LOOPS*1000.;
 
-	cout << "OK - Time: " << elapsedTime << " msecs";
-	cout << " (" << loopTimeDev2DevH <<  " usecs/invocation)" << endl;
+	cout << elapsedTime << " msecs";
+	cout << " (" << loopTimeDev2DevH <<  " usecs/invocation)" << endl << endl;
+
+	// Host to device only experiments
+	cout << "Host <-> Device experiments" << endl;
 
 	// Device allocated with memory mapping experiment
 	cout << "Experiment #1: Device allocated memory w. mapping:  " << std::flush;
@@ -268,7 +271,7 @@ void clPingPongApp::run(void){
 	const auto loopTimeHostAllocTransf = elapsedTime/LOOPS*1000.;
 	verifyResult( readBufferElement(*bufferHostAlloc) );
 
-	cout << endl;
+	cout << endl << "Benchmark summary (Host <-> Device)" << endl;
 	cout << "                        Time measurements (usecs/loop)" << endl;
 	cout << "Communication type  |  Regular buffer  |  Host allocated  |" << endl;
 	cout << "--------------------|------------------|------------------|" << endl;
