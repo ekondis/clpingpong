@@ -31,7 +31,7 @@ bool in_range(const T &v, const T &low, const T &high){
 }
 
 // Platform and device selection with a preference as hint
-pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void){
+pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 	cout << "Platform/Device selection" << endl;
 	cout << "Total platforms: " << hostPlatforms.size() << endl;
 	string tmp;
@@ -88,7 +88,7 @@ void clPingPongApp::resetBufferElements(void){
 	queue->enqueueUnmapMemObject(*bufferHostAlloc, map);
 }
 
-cl_uint clPingPongApp::readBufferElement(const cl::Buffer& buffer){
+cl_uint clPingPongApp::readBufferElement(const cl::Buffer& buffer) const{
 	cl_uint *map = (cl_uint*)queue->enqueueMapBuffer(buffer, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint));
 	cl_uint result = map[0];
 	queue->enqueueUnmapMemObject(buffer, map);
@@ -110,7 +110,7 @@ cl_uint clPingPongApp::decrBufferElementMapped(const cl::Buffer& buffer){
 	return result;
 }
 
-void clPingPongApp::verifyResult(cl_uint result){
+void clPingPongApp::verifyResult(cl_uint result) const{
 	constexpr unsigned int validResult = 0;
 	if( result == validResult )
 		cout << "PASSED!" << endl;
@@ -119,7 +119,7 @@ void clPingPongApp::verifyResult(cl_uint result){
 }
 
 
-void clPingPongApp::print_build_log(void){
+void clPingPongApp::print_build_log(void) const{
     //string buildLog;
     //program.getBuildInfo(dev, CL_PROGRAM_BUILD_LOG, &buildLog);
     cout << "Build log:" << endl

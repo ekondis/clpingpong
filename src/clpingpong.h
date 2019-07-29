@@ -20,15 +20,15 @@ private:
 	std::unique_ptr<cl::CommandQueue> queue;
 	std::unique_ptr<cl::Buffer> bufferDevAlloc, bufferHostAlloc;
 	std::unique_ptr<cl::Kernel> kPingPong;
+	std::pair<cl::Platform, cl::Device> selectPlatformDevice(void) const;
 	void enumerate_devices(void);
 	void choose_device(void);
 	void create_resources(void);
-	void verifyResult(cl_uint);
+	void verifyResult(cl_uint) const;
 protected:
-	std::pair<cl::Platform, cl::Device> selectPlatformDevice(void);
-	void print_build_log(void);
+	void print_build_log(void) const;
 	void resetBufferElements(void);
-	cl_uint readBufferElement(const cl::Buffer&);
+	cl_uint readBufferElement(const cl::Buffer&) const;
 	cl_uint decrBufferElement(const cl::Buffer&);
 	cl_uint decrBufferElementMapped(const cl::Buffer&);
 	template<class hostF>
