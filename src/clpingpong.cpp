@@ -38,11 +38,12 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 	long int iP = 1, iD;
 	for(const auto &pl:hostPlatforms) {
 		if( hostPlatforms.size() > 1 )
-			cout << iP++ << ". ";
+			cout << iP << ". ";
 		cout << pl.getInfo<CL_PLATFORM_NAME>() << endl;
 		iD = 1;
 		for(const auto &dev:hostDevices[iP-1])
 			cout << '\t' << iD++ << ". " << trim(dev.getInfo<CL_DEVICE_NAME>()) << '/' << dev.getInfo<CL_DEVICE_VENDOR>() << endl;
+		iP++;
 	}
 	// Platform selection
 	if( hostPlatforms.size()>1 ){
