@@ -14,7 +14,7 @@ static const char kernel_src[] = (
 #include "kernels.h"
 );
 
-inline string trim(string str) {
+string trim(string str) {
 	const string white_space_chars{" \n\r\0", 4};
 	str.erase(0, str.find_first_not_of(white_space_chars));       //prefixing spaces
 	str.erase(str.find_last_not_of(white_space_chars)+1);         //surfixing spaces
@@ -52,7 +52,7 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 		} else {
 			cout << "Select platform index: ";
 			cin >> iP;
-			while( iP < 0 || iP > (int)hostPlatforms.size() ){
+			while( iP < 0 || iP > static_cast<int>(hostPlatforms.size()) ){
 				cout << "Invalid platform index. Select again:";
 				cin >> iP;
 			}
@@ -68,7 +68,7 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 		} else {
 			cout << "Select device index: ";
 			cin >> iD;
-			while( iD<0 || iD>(int)devices.size() ){
+			while( iD<0 || iD>static_cast<int>(devices.size()) ){
 				cout << "Invalid device index. Select again:";
 				cin >> iD;
 			}
@@ -80,17 +80,17 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 }
 
 void clPingPongApp::resetBufferElements(void){
-	cl_uint *map = (cl_uint*)queue->enqueueMapBuffer(*bufferDevAlloc, CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint));
+	cl_uint *map = reinterpret_cast<cl_uint*>(queue->enqueueMapBuffer(*bufferDevAlloc, CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)));
 	map[0] = 0;
 	queue->enqueueUnmapMemObject(*bufferDevAlloc, map);
 
-	map = (cl_uint*)queue->enqueueMapBuffer(*bufferHostAlloc, CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint));
+	map = reinterpret_cast<cl_uint*>(queue->enqueueMapBuffer(*bufferHostAlloc, CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)));
 	map[0] = 0;
 	queue->enqueueUnmapMemObject(*bufferHostAlloc, map);
 }
 
 cl_uint clPingPongApp::readBufferElement(const cl::Buffer& buffer) const{
-	cl_uint *map = (cl_uint*)queue->enqueueMapBuffer(buffer, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint));
+	cl_uint *map = reinterpret_cast<cl_uint*>(queue->enqueueMapBuffer(buffer, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint)));
 	cl_uint result = map[0];
 	queue->enqueueUnmapMemObject(buffer, map);
 	return result;
@@ -105,7 +105,7 @@ cl_uint clPingPongApp::decrBufferElement(const cl::Buffer& buffer){
 }
 
 cl_uint clPingPongApp::decrBufferElementMapped(const cl::Buffer& buffer){
-	cl_uint *map = (cl_uint*)queue->enqueueMapBuffer(buffer, CL_TRUE, CL_MAP_READ|CL_MAP_WRITE, 0, sizeof(cl_uint));
+	cl_uint *map = reinterpret_cast<cl_uint*>(queue->enqueueMapBuffer(buffer, CL_TRUE, CL_MAP_READ|CL_MAP_WRITE, 0, sizeof(cl_uint)));
 	cl_uint result = --map[0];
 	queue->enqueueUnmapMemObject(buffer, map);
 	return result;
@@ -158,7 +158,7 @@ void clPingPongApp::create_resources(void){
 
 	// Create context, queue
 	cl::Context context{VECTOR_CLASS<cl::Device>(1, dev)};
-	queue = unique_ptr<cl::CommandQueue>(new cl::CommandQueue(context, dev, 0/*CL_QUEUE_PROFILING_ENABLE*/));
+	queue = unique_ptr<cl::CommandQueue>(new cl::CommandQueue(context, dev, 0));
 
 	// Load and build kernel
 	cl::Program::Sources src{1, make_pair(kernel_src, sizeof(kernel_src)-1/*remove NULL character*/)};
