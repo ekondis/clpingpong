@@ -1,12 +1,11 @@
 # clPingPong
-OpenCL devices, like GPUs, typically have a separate physical memory which requires memory tranfers when communicating with the main host processor.
+OpenCL devices and GPUs in particular, typically own a separate physical memory and they require memory tranfers by communicating with the main host processor.
 This fact induces overhead when running light-weight kernels requiring interaction between the host CPU and the device and vice versa.
 This communication potentially poses a significant overhead which should be taken into account.
 
 This benchmark measures host to OpenCL device round-trip delay times.
-It applies a light-weight kernel execution performing a trivial computation (addition) on a minor piece of data (32bit integer),
-followed by a similar operation on the host device.
-This flow is applied thousand of times sequentially and hence resembling a ping-pong game between the CPU and the OpenCL device.
+It applies a light-weight kernel execution performing a trivial computation (i.e. addition) on a minor piece of data (i.e. one single 32bit integer), followed by a similar operation on the host device.
+This flow is applied thousands of times sequentially, resembling a ping-pong game between the CPU and the OpenCL device.
 The average round-trip delay time is measured and reported by utilizing either device or host allocated memory.
 Communication is performed either by explicit memory transfers or memory mapped access.
 If delay times are significant to the actual computation then this might provide a hint to restructuring the application or even abandoning the use of an accelerator device for this purpose.
