@@ -59,7 +59,7 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 		}
 	} else
 		iP = 1;
-	cl::Platform &platform = hostPlatforms[iP-1];
+	const auto platform = hostPlatforms[iP-1];
 	auto &devices = hostDevices[iP-1];
 	// Device selection
 	if( devices.size()>1 ){
@@ -75,7 +75,7 @@ pair<cl::Platform, cl::Device> clPingPongApp::selectPlatformDevice(void) const{
 		}
 	} else
 		iD = 1;
-	cl::Device device = devices[static_cast<size_t>(iD-1)];
+	const auto device = devices[static_cast<size_t>(iD-1)];
 	return make_pair(platform, device);
 }
 
